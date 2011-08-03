@@ -53,6 +53,8 @@ moduleVerboseLog = getLog(prefix="verbose.")
 class LockError(Exception): pass
 class CliError(Exception): pass
 
+path_expand = lambda x: os.path.realpath( os.path.expandvars( os.path.expanduser( x )))
+
 # only use this function prior to logging availability
 def exFatal(message):
     print >> sys.stderr, message
@@ -147,7 +149,7 @@ class BaseContext(object):
             # argname, default, config file section, config file option, transform
             ("verbosity", 1, "general", "verbosity", lambda x: int(x)),
             ("trace", False, "general", "trace", lambda x: bool(int(x))),
-            ("lockFile", None, "general", "lockFile", lambda x: str(x)),
+            ("lockFile", None, "general", "lockFile", path_expand,),
             ("disabledPlugins", [], "general", "disabledPlugins", lambda x: [y.strip() for y in x.split(",") if y.strip()]),
             ]
 
@@ -163,6 +165,8 @@ class BaseContext(object):
         p.add_argument("--reset-disabled-plugin-list", action="store_const", const=[], dest="disabledPlugins", metavar="PLUGIN_NAME_GLOB", help=_("Disable single named plugin."))
         p.add_argument("--disableplugin", action="append", dest="disabledPlugins", metavar="PLUGIN_NAME_GLOB", help=_("Disable single named plugin."))
         self.args, remaining_args = p.parse_known_args(args, namespace=self.args)
+
+        self.args.lockFile = path_expand(self.args.lockFile)
 
         self.setupLogging(configFile=self.args.configFiles, verbosity=self.args.verbosity, trace=self.args.trace)
 
