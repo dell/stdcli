@@ -107,8 +107,13 @@ def main():
         moduleVerboseLog.info(_('Complete!'))
     except KeyboardInterrupt:
         moduleLog.critical(_('Exiting on user <CTRL>-C keypress'))
-    else:
-        sys.exit(ctx.retcode)
+        if ctx.retcode == 0:
+            ctx.retcode = 1
+    except (Exception,), e:
+        if ctx.retcode == 0:
+            ctx.retcode = 1
+
+    sys.exit(ctx.retcode)
 
 
 def setArgDefaults(namespace, conf, args_from_config):
