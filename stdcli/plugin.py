@@ -1,6 +1,11 @@
-from trace_decorator import traceLog, getLog
+# vim:expandtab:autoindent:tabstop=4:shiftwidth=4:filetype=python:tw=0
+
+import fnmatch
 import pkg_resources
-moduleVerboseLog = getLog(prefix="verbose.")
+
+from trace_decorator import traceLog, getLog
+moduleLog = getLog()
+moduleLogVerbose = getLog(prefix="verbose.")
 
 class PluginExit(Exception): pass
 
@@ -10,8 +15,9 @@ class Plugin(object):
 
 
 class PluginContainer(object):
-    def __init__(self, disable):
+    def __init__(self, disable, skip_import_errors=False):
         self.disable = disable
+        self.skip_import_errors = skip_import_errors
         self.plugins = {}
 
     @traceLog()
@@ -23,11 +29,17 @@ class PluginContainer(object):
                         skip=1
                         break
             if not skip:
-                moduleVerboseLog.info("loading plugin: %s" % (entrypoint.name,))
-                plugin = entrypoint.load()
-                plugin_set = self.plugins.get(plugin_type, {})
-                plugin_set[entrypoint.name] = plugin
-                self.plugins[plugin_type] = plugin_set
+                try:
+                    moduleLogVerbose.info("loading plugin: %s" % (entrypoint.name,))
+                    plugin = entrypoint.load()
+                    plugin_set = self.plugins.get(plugin_type, {})
+                    plugin_set[entrypoint.name] = plugin
+                    self.plugins[plugin_type] = plugin_set
+                except (ImportError,), e:
+                    moduleLogVerbose.info("Module %s had import errors, skipping.")
+                    if not self.skip_import_errors:
+                        raise
+                    moduleLogVerbose.debug("Exception info: %s" % e)
 
 
     @traceLog()

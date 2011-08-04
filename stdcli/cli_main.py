@@ -24,15 +24,13 @@ Command line interface class and related.
 """
 
 import os
-import imp
 import sys
 import time
-import glob
 import fcntl
 import signal
 import locale
 import logging
-import fnmatch
+import logging.config
 import argparse
 import ConfigParser
 import pkg_resources
@@ -94,6 +92,8 @@ def main():
     try:
         # no logging before this returns.
         ctx = BaseContext(prog=os.path.basename(sys.argv[0]), args=sys.argv[1:])
+    except (SystemExit,), e:
+        raise
     except Exception, e:
         # for debugging only, comment out for release
         import traceback
@@ -157,6 +157,7 @@ class BaseContext(object):
             ("trace", False, "general", "trace", lambda x: bool(int(x))),
             ("lockFile", None, "general", "lockFile", path_expand,),
             ("disabledPlugins", [], "general", "disabledPlugins", lambda x: [y.strip() for y in x.split(",") if y.strip()]),
+            ("skip_import_errors", False, "general", "skip_import_errors", lambda x: bool(int(x))),
             ]
 
         setArgDefaults(self.args, self.conf, args_from_config)
@@ -179,7 +180,7 @@ class BaseContext(object):
         # parent subparsers for plugins to add cmds to
         self.subparsers = p.add_subparsers(help="%s commands" % moduleName, dest="command_name")
 
-        self.plugins = plugin.PluginContainer(disable=self.args.disabledPlugins)
+        self.plugins = plugin.PluginContainer(disable=self.args.disabledPlugins, skip_import_errors=self.args.skip_import_errors)
         self.plugins.loadPlugins("%s_cli_extensions" % moduleName)
         self.plugins.instantiatePlugins("%s_cli_extensions" % moduleName, self)
 
@@ -193,7 +194,6 @@ class BaseContext(object):
     def setupLogging(self, configFile, verbosity=1, trace=0):
         # set up logging
         try:
-            import logging.config
             logging.config.fileConfig(configFile)
         except (ConfigParser.NoSectionError,), e:
             # manually set up basic logging if not present in cfg file
