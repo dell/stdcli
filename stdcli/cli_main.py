@@ -101,13 +101,14 @@ def main():
         # no logging at this point yet
         exFatal(str(e))
 
+    ctx.retcode = 0
     try:
         ctx.doCommands()
         moduleVerboseLog.info(_('Complete!'))
     except KeyboardInterrupt:
         moduleLog.critical(_('Exiting on user <CTRL>-C keypress'))
     else:
-        sys.exit(0)
+        sys.exit(ctx.retcode)
 
 
 def setArgDefaults(namespace, conf, args_from_config):
