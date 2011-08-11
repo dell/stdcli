@@ -177,7 +177,7 @@ class BaseContext(object):
         p.add_argument("--skip-import-errors", action="store_true", dest="skip_import_errors", help=_("Disable plugins with module load errors."))
         self.args, remaining_args = p.parse_known_args(args, namespace=self.args)
 
-        self.args.lockFile = path_expand(self.args.lockFile)
+        self.args.lockfile = path_expand(self.args.lockfile)
 
         self.setupLogging(configFile=self.args.config_files, verbosity=self.args.verbosity, trace=self.args.trace)
 
@@ -231,9 +231,9 @@ class BaseContext(object):
 
     @traceLog()
     def lock(self):
-        if self.args.lockFile is None:
+        if self.args.lockfile is None:
             return
-        self.runLock = open(self.args.lockFile, "a+")
+        self.runLock = open(self.args.lockfile, "a+")
         try:
             fcntl.lockf(self.runLock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
             self.runLock.truncate()
@@ -247,10 +247,10 @@ class BaseContext(object):
 
     @traceLog()
     def unlock(self):
-        if self.args.lockFile is None:
+        if self.args.lockfile is None:
             return
         try:
-            os.unlink(self.args.lockFile)
+            os.unlink(self.args.lockfile)
             fcntl.lockf(self.runLock.fileno(), fcntl.LOCK_UN)
         except (OSError,), e:
             if e.errno == 2:
@@ -261,11 +261,11 @@ class BaseContext(object):
 
     @traceLog()
     def kill(self, sig=signal.SIGTERM):
-        if self.args.lockFile is None:
+        if self.args.lockfile is None:
             return
 
         try:
-            self.runLock = open(self.args.lockFile, "r")
+            self.runLock = open(self.args.lockfile, "r")
         except IOError, e:
             if e.errno == 2:
                 moduleLog.info(_("Not currently running."))
