@@ -51,7 +51,9 @@ moduleVerboseLog = getLog(prefix="verbose.")
 class LockError(Exception): pass
 class CliError(Exception): pass
 
-path_expand = lambda x: os.path.realpath( os.path.expandvars( os.path.expanduser( x )))
+def path_expand(x):
+    if x is not None:
+        return os.path.realpath( os.path.expandvars( os.path.expanduser( x )))
 
 # only use this function prior to logging availability
 def exFatal(message):
@@ -154,11 +156,11 @@ class BaseContext(object):
         # argument parse.  command line overrides config file which overrides built-in default
         args_from_config = [
             # argname, default, config file section, config file option, transform
-            ("verbosity", 1, "general", "verbosity", lambda x: int(x)),
-            ("trace", False, "general", "trace", lambda x: bool(int(x))),
-            ("lockFile", None, "general", "lockFile", path_expand,),
-            ("disabledPlugins", [], "general", "disabledPlugins", lambda x: [y.strip() for y in x.split(",") if y.strip()]),
-            ("skip_import_errors", False, "general", "skip_import_errors", lambda x: bool(int(x))),
+            ("verbosity", 1, "general", None, lambda x: int(x)),
+            ("trace", False, "general", None, lambda x: bool(int(x))),
+            ("lock_file", None, "general", None, path_expand,),
+            ("disabled_plugins", [], "general", None, lambda x: [y.strip() for y in x.split(",") if y.strip()]),
+            ("skip_import_errors", False, "general", None, lambda x: bool(int(x))),
             ]
 
         setArgDefaults(self.args, self.conf, args_from_config)
