@@ -35,7 +35,7 @@ class PluginContainer(object):
                     plugin_set = self.plugins.get(plugin_type, {})
                     plugin_set[entrypoint.name] = plugin
                     self.plugins[plugin_type] = plugin_set
-                except (ImportError,), e:
+                except (ImportError,pkg_resources.DistributionNotFound), e:
                     moduleLogVerbose.info("Module %s had import errors, skipping.")
                     if not self.skip_import_errors:
                         raise
