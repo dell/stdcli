@@ -118,6 +118,7 @@ def main():
 
 def setArgDefaults(namespace, conf, args_from_config):
     for argname, argDefault, section, option, transfunc in args_from_config:
+        if option is None: option = argname
         setattr(namespace, argname, argDefault)
         if conf.has_section(section):
             if conf.has_option(section, option):
