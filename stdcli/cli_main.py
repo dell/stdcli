@@ -24,15 +24,13 @@ Command line interface class and related.
 """
 
 import os
-import imp
 import sys
 import time
-import glob
 import fcntl
 import signal
 import locale
 import logging
-import fnmatch
+import logging.config
 import argparse
 import ConfigParser
 import pkg_resources
@@ -53,7 +51,9 @@ moduleVerboseLog = getLog(prefix="verbose.")
 class LockError(Exception): pass
 class CliError(Exception): pass
 
-path_expand = lambda x: os.path.realpath( os.path.expandvars( os.path.expanduser( x )))
+def path_expand(x):
+    if x is not None:
+        return os.path.realpath( os.path.expandvars( os.path.expanduser( x )))
 
 # only use this function prior to logging availability
 def exFatal(message):
@@ -94,6 +94,8 @@ def main():
     try:
         # no logging before this returns.
         ctx = BaseContext(prog=os.path.basename(sys.argv[0]), args=sys.argv[1:])
+    except (SystemExit,), e:
+        raise
     except Exception, e:
         # for debugging only, comment out for release
         import traceback
@@ -118,6 +120,7 @@ def main():
 
 def setArgDefaults(namespace, conf, args_from_config):
     for argname, argDefault, section, option, transfunc in args_from_config:
+        if option is None: option = argname
         setattr(namespace, argname, argDefault)
         if conf.has_section(section):
             if conf.has_option(section, option):
@@ -134,7 +137,7 @@ class BaseContext(object):
 
         # default cli namespace and program defaults
         self.args = argparse.Namespace()
-        self.args.configFiles = [configfile,]
+        self.args.config_files = [configfile,]
         self.args.uid = os.geteuid()
 
         # setup argument parser and config files
@@ -142,21 +145,22 @@ class BaseContext(object):
         self.conf = ConfigParser.ConfigParser()
 
         # base config options that we have to parse first, related to config files
-        base_parser.add_argument("--no-default-config", dest="configFiles", action="store_const", const=[], help=_("Dont read default config files."))
-        base_parser.add_argument("-c", "--config", dest="configFiles", action="append", default=None, metavar="FILENAME", help=_("Add additional config to read."))
+        base_parser.add_argument("--no-default-config", dest="config_files", action="store_const", const=[], help=_("Dont read default config files."))
+        base_parser.add_argument("-c", "--config", dest="config_files", action="append", default=None, metavar="FILENAME", help=_("Add additional config to read."))
         base_parser.add_argument('--version', action='version', version='%(prog)s ' + __VERSION__)
         self.args, remaining_args = base_parser.parse_known_args(args, namespace=self.args)
 
         # actually read all the config file specified
-        self.conf.read(self.args.configFiles)
+        self.conf.read(self.args.config_files)
 
         # argument parse.  command line overrides config file which overrides built-in default
         args_from_config = [
             # argname, default, config file section, config file option, transform
-            ("verbosity", 1, "general", "verbosity", lambda x: int(x)),
-            ("trace", False, "general", "trace", lambda x: bool(int(x))),
-            ("lockFile", None, "general", "lockFile", path_expand,),
-            ("disabledPlugins", [], "general", "disabledPlugins", lambda x: [y.strip() for y in x.split(",") if y.strip()]),
+            ("verbosity", 1, "general", None, lambda x: int(x)),
+            ("trace", False, "general", None, lambda x: bool(int(x))),
+            ("lockfile", None, "general", None, path_expand,),
+            ("disabled_plugins", [], "general", None, lambda x: [y.strip() for y in x.split(",") if y.strip()]),
+            ("skip_import_errors", False, "general", None, lambda x: bool(int(x))),
             ]
 
         setArgDefaults(self.args, self.conf, args_from_config)
@@ -167,19 +171,20 @@ class BaseContext(object):
         p.add_argument("-q", "--quiet", action="store_const", const=0, dest="verbosity", help=_("Minimize program output. Only errors and warnings are displayed."))
         p.add_argument("--trace", action="store_true", dest="trace", help=_("Enable verbose function tracing."))
         p.add_argument("--trace-off", action="store_false", dest="trace", help=_("Disable verbose function tracing."))
-        p.add_argument("--lockfile", action="store", dest="lockFile", help=_("Specify the lock file."))
-        p.add_argument("--reset-disabled-plugin-list", action="store_const", const=[], dest="disabledPlugins", metavar="PLUGIN_NAME_GLOB", help=_("Disable single named plugin."))
-        p.add_argument("--disableplugin", action="append", dest="disabledPlugins", metavar="PLUGIN_NAME_GLOB", help=_("Disable single named plugin."))
+        p.add_argument("--lockfile", action="store", dest="lockfile", help=_("Specify the lock file."))
+        p.add_argument("--reset-disabled-plugin-list", action="store_const", const=[], dest="disabled_plugins", metavar="PLUGIN_NAME_GLOB", help=_("Disable single named plugin."))
+        p.add_argument("--disable-plugin", action="append", dest="disabled_plugins", metavar="PLUGIN_NAME_GLOB", help=_("Disable single named plugin."))
+        p.add_argument("--skip-import-errors", action="store_true", dest="skip_import_errors", help=_("Disable plugins with module load errors."))
         self.args, remaining_args = p.parse_known_args(args, namespace=self.args)
 
         self.args.lockFile = path_expand(self.args.lockFile)
 
-        self.setupLogging(configFile=self.args.configFiles, verbosity=self.args.verbosity, trace=self.args.trace)
+        self.setupLogging(configFile=self.args.config_files, verbosity=self.args.verbosity, trace=self.args.trace)
 
         # parent subparsers for plugins to add cmds to
         self.subparsers = p.add_subparsers(help="%s commands" % moduleName, dest="command_name")
 
-        self.plugins = plugin.PluginContainer(disable=self.args.disabledPlugins)
+        self.plugins = plugin.PluginContainer(disable=self.args.disabled_plugins, skip_import_errors=self.args.skip_import_errors)
         self.plugins.loadPlugins("%s_cli_extensions" % moduleName)
         self.plugins.instantiatePlugins("%s_cli_extensions" % moduleName, self)
 
@@ -193,7 +198,6 @@ class BaseContext(object):
     def setupLogging(self, configFile, verbosity=1, trace=0):
         # set up logging
         try:
-            import logging.config
             logging.config.fileConfig(configFile)
         except (ConfigParser.NoSectionError,), e:
             # manually set up basic logging if not present in cfg file

@@ -19,9 +19,9 @@ class DumpConfigPlugin(Plugin):
     def dumpConfigImpl(self, ctx):
         nonconfig=["uid", "func"]
         transforms = {
-            "configFiles": lambda x: ",".join(x),
-            "disabledPlugins": lambda x: ",".join(x),
-            "lockFile": lambda x: x or ''
+            "config_files": lambda x: ",".join(x),
+            "disabled_plugins": lambda x: ",".join(x),
+            "lockfile": lambda x: x or ''
             }
         def trans(t, i):
             return transforms.get(t, lambda x: x)(i)
