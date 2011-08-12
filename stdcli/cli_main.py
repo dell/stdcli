@@ -133,7 +133,7 @@ def setArgDefaults(namespace, conf, args_from_config):
 
 class BaseContext(object):
     def __init__(self,prog=moduleName, args=[]):
-        configfile = pkg_resources.resource_filename(pkg_resources.Requirement.parse(moduleName),"pkg/%s.ini" % moduleName)
+        configfile = pkg_resources.resource_filename(moduleName,"%s.ini" % moduleName)
 
         # default cli namespace and program defaults
         self.args = argparse.Namespace()
