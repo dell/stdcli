@@ -258,6 +258,12 @@ class BaseContext(object):
             else:
                 raise
 
+    @traceLog()
+    def still_locked(self):
+        if self.args.lockfile is None:
+            return True
+        if os.path.exists(self.args.lockfile):
+            return True
 
     @traceLog()
     def kill(self, sig=signal.SIGTERM):
