@@ -171,6 +171,7 @@ class BaseContext(object):
         p.add_argument("-q", "--quiet", action="store_const", const=0, dest="verbosity", help=_("Minimize program output. Only errors and warnings are displayed."))
         p.add_argument("--trace", action="store_true", dest="trace", help=_("Enable verbose function tracing."))
         p.add_argument("--trace-off", action="store_false", dest="trace", help=_("Disable verbose function tracing."))
+        p.add_argument("--logfile", action="store", dest="logfile", help=_("Specify a file to log all operations to"))
         p.add_argument("--lockfile", action="store", dest="lockfile", help=_("Specify the lock file."))
         p.add_argument("--reset-disabled-plugin-list", action="store_const", const=[], dest="disabled_plugins", metavar="PLUGIN_NAME_GLOB", help=_("Disable single named plugin."))
         p.add_argument("--disable-plugin", action="append", dest="disabled_plugins", metavar="PLUGIN_NAME_GLOB", help=_("Disable single named plugin."))
@@ -214,19 +215,34 @@ class BaseContext(object):
         module_verbose_log = logging.getLogger("verbose")
         module_trace_log   = logging.getLogger("trace")
 
+        # if logfile is specified, it will get everything
+        root_log_hdlr = None
+        if self.args.logfile:
+            root_log_hdlr = logging.FileHandler(self.args.logfile)
+            root_log.addHandler(root_log_hdlr)
+
         module_log.propagate = 0
         module_trace_log.propagate = 0
         module_verbose_log.propagate = 0
 
         if verbosity >= 1:
             module_log.propagate = 1
+        elif root_log_hdlr:
+            module_log.addHandler(root_log_hdlr)
+
         if verbosity >= 2:
             module_verbose_log.propagate = 1
+        elif root_log_hdlr:
+            module_verbose_log.addHandler(root_log_hdlr)
+
         if verbosity >= 3:
             for hdlr in root_log.handlers:
                 hdlr.setLevel(logging.DEBUG)
+
         if trace:
             module_trace_log.propagate = 1
+        elif root_log_hdlr:
+            module_trace_log.addHandler(root_log_hdlr)
 
 
     @traceLog()
