@@ -139,6 +139,7 @@ class BaseContext(object):
         self.args = argparse.Namespace()
         self.args.config_files = [configfile,]
         self.args.uid = os.geteuid()
+        self.runLock = None
 
         # setup argument parser and config files
         base_parser = argparse.ArgumentParser(add_help=False)
@@ -249,9 +250,13 @@ class BaseContext(object):
     def lock(self):
         if self.args.lockfile is None:
             return
-        self.runLock = open(self.args.lockfile, "a+")
+
+        if not self.runLock:
+            self.runLock = open(self.args.lockfile, "a+")
+
         try:
             fcntl.lockf(self.runLock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            self.runLock.seek(0)
             self.runLock.truncate()
             self.runLock.write("%s" % os.getpid())
             self.runLock.flush()
@@ -267,7 +272,8 @@ class BaseContext(object):
             return
         try:
             os.unlink(self.args.lockfile)
-            fcntl.lockf(self.runLock.fileno(), fcntl.LOCK_UN)
+            if self.runLock:
+                fcntl.lockf(self.runLock.fileno(), fcntl.LOCK_UN)
         except (OSError,), e:
             if e.errno == 2:
                 pass # file not found
