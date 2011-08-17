@@ -28,6 +28,10 @@ class NullHandler(logging.Handler):
 #initialize this late because if it get initialized but unused we throw an exception on exit
 null_handler = None
 
+def format_function_call(func_name, *args, **kw):
+    return  "%s(%s)" % (func_name,
+                    ", ".join([repr(i) for i in args] + ["%s=%s" % (key, repr(value)) for key, value in kw.items()])
+                    )
 
 # defaults to module log
 # does a late binding on log. Forwards all attributes to logger.
@@ -96,9 +100,7 @@ def traceLog(log = None):
             if isinstance(l2, basestring):
                 l2 = getLog(l2)
 
-            message = "ENTER %s(%s)" % (func_name,
-                    ", ".join([repr(i) for i in args] + ["%s=%s" % (key, repr(value)) for key, value in kw.items()])
-                    )
+            message = "ENTER %s" % format_function_call(func_name, *args, **kw)
 
             frame = sys._getframe(2)
             doLog(l2, logging.INFO, os.path.normcase(frame.f_code.co_filename), frame.f_lineno, message, args=[], exc_info=None, func=frame.f_code.co_name)
