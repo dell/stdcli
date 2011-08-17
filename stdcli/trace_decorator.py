@@ -96,12 +96,9 @@ def traceLog(log = None):
             if isinstance(l2, basestring):
                 l2 = getLog(l2)
 
-            message = "ENTER %s(" % func_name
-            for arg in args:
-                message = message + repr(arg) + ", "
-            for k,v in kw.items():
-                message = message + "%s=%s" % (k,repr(v))
-            message = message + ")"
+            message = "ENTER %s(%s)" % (func_name,
+                    ", ".join([repr(i) for i in args] + ["%s=%s" % (key, repr(value)) for key, value in kw.items()])
+                    )
 
             frame = sys._getframe(2)
             doLog(l2, logging.INFO, os.path.normcase(frame.f_code.co_filename), frame.f_lineno, message, args=[], exc_info=None, func=frame.f_code.co_name)
