@@ -45,4 +45,12 @@ def timedSpinPrint( strn, start ):
     # ESC codes for position cursor at horizontal pos 65
     spinPrint( strn + "\033[65G time: %2.2f" % (now - start) )
 
+@traceLog()
+def call_output(*args, **kargs):
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, *args, **kargs)
+    output, err = process.communicate()
+    retcode = process.poll()
+    if retcode:
+        raise CalledProcessError(retcode, cmd, stdout=output, stderr=err)
+    return output
 
