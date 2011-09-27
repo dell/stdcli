@@ -15,6 +15,7 @@ from __future__ import generators
 
 import sys
 import time
+import subprocess
 
 from trace_decorator import decorate, traceLog, getLog
 
