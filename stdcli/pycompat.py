@@ -47,7 +47,7 @@ def timedSpinPrint( strn, start ):
     spinPrint( strn + "\033[65G time: %2.2f" % (now - start) )
 
 @traceLog()
-def call_output(*args, **kargs):
+def call_output(cmd, *args, **kargs):
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE, *args, **kargs)
     output, err = process.communicate()
     retcode = process.poll()
