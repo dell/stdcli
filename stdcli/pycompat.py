@@ -13,7 +13,7 @@ some docs here eventually.
 
 from __future__ import generators
 
-# import arranged alphabetically
+import sys
 import time
 
 from trace_decorator import decorate, traceLog, getLog
