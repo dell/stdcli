@@ -34,6 +34,7 @@ import logging.config
 import argparse
 import ConfigParser
 import pkg_resources
+from cStringIO import StringIO
 
 from trace_decorator import traceLog, getLog
 import plugin
@@ -133,11 +134,9 @@ def setArgDefaults(namespace, conf, args_from_config):
 
 class BaseContext(object):
     def __init__(self,prog=moduleName, args=[]):
-        configfile = pkg_resources.resource_filename(moduleName,"%s.ini" % moduleName)
-
         # default cli namespace and program defaults
         self.args = argparse.Namespace()
-        self.args.config_files = [configfile,]
+        self.args.config_files = [StringIO(pkg_resources.resource_string(moduleName,"%s.ini" % moduleName)),]
         self.args.uid = os.geteuid()
         self.runLock = None
 
@@ -152,7 +151,11 @@ class BaseContext(object):
         self.args, remaining_args = base_parser.parse_known_args(args, namespace=self.args)
 
         # actually read all the config file specified
-        self.conf.read(self.args.config_files)
+        for fn in self.args.config_files:
+            if hasattr(fn, "readline"):
+                self.conf.readfp(fn)
+            else:
+                self.conf.read(fn)
 
         # argument parse.  command line overrides config file which overrides built-in default
         args_from_config = [
@@ -181,7 +184,7 @@ class BaseContext(object):
 
         self.args.lockfile = path_expand(self.args.lockfile)
 
-        self.setupLogging(configFile=self.args.config_files, verbosity=self.args.verbosity, trace=self.args.trace)
+        self.setupLogging(configFile=self.args.config_files[0], verbosity=self.args.verbosity, trace=self.args.trace)
 
         # parent subparsers for plugins to add cmds to
         self.subparsers = p.add_subparsers(help="%s commands" % moduleName, dest="command_name")
