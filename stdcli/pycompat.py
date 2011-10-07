@@ -46,14 +46,23 @@ def timedSpinPrint( strn, start ):
     # ESC codes for position cursor at horizontal pos 65
     spinPrint( strn + "\033[65G time: %2.2f" % (now - start) )
 
-class CalledProcessError(Exception): pass
+class CalledProcessError(Exception):
+    def __init__(self, returncode, cmd, stdout=None, stderr=None):
+        self.returncode = returncode
+        self.cmd = cmd
+        self.stdout = stdout
+        self.stderr = stderr
+    def __str__(self):
+        return "Command '%s' returned non-zero exit status %d.\n\tstdout: %s\n\tstderr: %s" % (self.cmd, self.returncode, self.stdout, self.stderr)
 
 @traceLog()
 def call_output(cmd, *args, **kargs):
+    raise_exc = kargs.get("raise_exc",True)
+    if kargs.has_key("raise_exc"): del(kargs["raise_exc"])
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE, *args, **kargs)
     output, err = process.communicate()
     retcode = process.poll()
-    if retcode and kargs.get("raise_exc",True):
+    if retcode and raise_exc:
         raise CalledProcessError(retcode, cmd, stdout=output, stderr=err)
     return output
 
