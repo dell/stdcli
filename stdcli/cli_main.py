@@ -173,6 +173,7 @@ class BaseContext(object):
         self.parser = p = argparse.ArgumentParser(add_help=False, parents=[base_parser])
         p.add_argument("-v", "--verbose", action="count", dest="verbosity", help=_("Display more verbose output."))
         p.add_argument("-q", "--quiet", action="store_const", const=0, dest="verbosity", help=_("Minimize program output. Only errors and warnings are displayed."))
+        p.add_argument("--debug", action="count", dest="debug", help=_("Enable debugging output."))
         p.add_argument("--trace", action="store_true", dest="trace", help=_("Enable verbose function tracing."))
         p.add_argument("--trace-off", action="store_false", dest="trace", help=_("Disable verbose function tracing."))
         p.add_argument("--logfile", action="store", dest="logfile", help=_("Specify a file to log all operations to"))
@@ -184,7 +185,7 @@ class BaseContext(object):
 
         self.args.lockfile = path_expand(self.args.lockfile)
 
-        self.setupLogging(configFile=self.args.config_files[0], verbosity=self.args.verbosity, trace=self.args.trace)
+        self.setupLogging(configFile=self.args.config_files[0], verbosity=self.args.verbosity, trace=self.args.trace, debug=self.args.debug)
 
         # parent subparsers for plugins to add cmds to
         self.subparsers = p.add_subparsers(help="%s commands" % moduleName, dest="command_name")
@@ -200,7 +201,7 @@ class BaseContext(object):
 
         for p in self.plugins.eachInstantiatedPlugin("%s_cli_extensions" % moduleName): p.finishedCliParsing(self)
 
-    def setupLogging(self, configFile, verbosity=1, trace=0):
+    def setupLogging(self, configFile, verbosity=1, trace=0, debug=0):
         # set up logging
         try:
             logging.config.fileConfig(configFile)
@@ -216,6 +217,7 @@ class BaseContext(object):
 
         root_log        = logging.getLogger()
         module_log         = logging.getLogger(moduleName)
+        module_debug_log   = logging.getLogger("debug")
         module_verbose_log = logging.getLogger("verbose")
         module_trace_log   = logging.getLogger("trace")
 
@@ -228,7 +230,17 @@ class BaseContext(object):
         module_log.propagate = 0
         module_trace_log.propagate = 0
         module_verbose_log.propagate = 0
+        module_debug_log.propagate = 0
 
+        # debug stuff doesnt go to default root log, unless requested
+        if debug >= 1:
+            module_debug_log.propagate = 1
+
+        # debug stuff doesnt go to default root log, unless requested
+        if trace:
+            module_trace_log.propagate = 1
+
+        # verbose stuff always goes to logfile if configured
         if verbosity >= 1:
             module_log.propagate = 1
         elif root_log_hdlr:
@@ -243,10 +255,6 @@ class BaseContext(object):
             for hdlr in root_log.handlers:
                 hdlr.setLevel(logging.DEBUG)
 
-        if trace:
-            module_trace_log.propagate = 1
-        elif root_log_hdlr:
-            module_trace_log.addHandler(root_log_hdlr)
 
 
     @traceLog()

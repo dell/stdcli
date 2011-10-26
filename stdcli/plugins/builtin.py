@@ -1,15 +1,17 @@
 from stdcli.trace_decorator import traceLog, getLog
 import pkg_resources
 
+moduleLog = getLog()
 moduleVerboseLog = getLog(prefix="verbose.")
-moduleVerboseLog.debug("initializing plugin module: %s" % __name__)
+moduleDebugLog = getLog(prefix="debug.")
+moduleDebugLog.debug("initializing plugin module: %s" % __name__)
 
 from stdcli.plugin import Plugin
 
 class DumpConfigPlugin(Plugin):
     @traceLog()
     def __init__(self, ctx):
-        moduleVerboseLog.debug("initializing plugin: %s" % self.__class__.__name__)
+        moduleDebugLog.debug("initializing plugin: %s" % self.__class__.__name__)
 
         # subparser for dumping config (note this is what plugins should do)
         dump_p = ctx.subparsers.add_parser("dump-config", help="Dumps the current config for debug purposes")
@@ -51,7 +53,7 @@ class DumpConfigPlugin(Plugin):
 class SamplePlugin(Plugin):
     @traceLog()
     def __init__(self, ctx):
-        moduleVerboseLog.debug("initializing plugin: %s" % self.__class__.__name__)
+        moduleDebugLog.debug("initializing plugin: %s" % self.__class__.__name__)
 
         # adds a separate parser with subcommands for our plugin. 
         # for this sample, the command is called "samplecmd", and the "--test1" and "--test2"
@@ -67,5 +69,5 @@ class SamplePlugin(Plugin):
 
     @traceLog()
     def sampleImpl(self, ctx):
-        moduleVerboseLog.info("Called sampleImpl()")
+        moduleLog.info("Called sampleImpl()")
         
