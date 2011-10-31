@@ -173,7 +173,7 @@ class BaseContext(object):
         self.parser = p = argparse.ArgumentParser(add_help=False, parents=[base_parser])
         p.add_argument("-v", "--verbose", action="count", dest="verbosity", help=_("Display more verbose output."))
         p.add_argument("-q", "--quiet", action="store_const", const=0, dest="verbosity", help=_("Minimize program output. Only errors and warnings are displayed."))
-        p.add_argument("--debug", action="count", dest="debug", help=_("Enable debugging output."))
+        p.add_argument("--debug", action="append", dest="debug", default=[], help=_("Enable a debugging flag."))
         p.add_argument("--trace", action="store_true", dest="trace", help=_("Enable verbose function tracing."))
         p.add_argument("--trace-off", action="store_false", dest="trace", help=_("Disable verbose function tracing."))
         p.add_argument("--logfile", action="store", dest="logfile", help=_("Specify a file to log all operations to"))
@@ -233,7 +233,7 @@ class BaseContext(object):
         module_debug_log.propagate = 0
 
         # debug stuff doesnt go to default root log, unless requested
-        if debug >= 1:
+        if debug:
             module_debug_log.propagate = 1
 
         # debug stuff doesnt go to default root log, unless requested
